@@ -68,6 +68,9 @@ jobs:
         run: |
           sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.${{ github.run_number }}\"/" build.gradle
           grep -n "version" build.gradle
+          cp "$GITHUB_WORKSPACE"/apkres/forma-debug.keystore forma-debug.keystore
+          printf '\nandroid {\n    signingConfigs {\n        debug {\n            storeFile file("forma-debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }\n}\n' >> build.gradle
+          tail -12 build.gradle
 
       - name: Build APK
         working-directory: build/android
