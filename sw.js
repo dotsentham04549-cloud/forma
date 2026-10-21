@@ -1,5 +1,5 @@
 /* ФОРМА — служебный модуль. Правило одно: никогда не оставлять страницу без ответа. */
-var CACHE = 'forma-8';
+var CACHE = 'forma-9';
 var CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
   './fonts/commissioner-cyrillic-400-normal.woff2',
   './fonts/commissioner-cyrillic-500-normal.woff2',

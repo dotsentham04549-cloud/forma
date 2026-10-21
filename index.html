@@ -317,6 +317,32 @@ body.locked{overflow:hidden}
 @supports (overflow:clip){.panel{overflow:clip}}
 .nw{white-space:nowrap;font-style:normal}
 .bp-pill{white-space:nowrap}
+/* ===== сборка 9: главный экран ===== */
+.s3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin-top:12px}
+.s3 button{text-align:left;padding:11px 12px 10px;border:1px solid var(--rule);border-radius:14px;background:linear-gradient(145deg,rgba(22,25,21,.96),rgba(13,15,13,.96));color:var(--ivory);font:inherit;min-width:0;transition:transform .14s}
+.s3 button:active{transform:scale(.97)}
+.s3 .k{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);white-space:nowrap}
+.s3 .v{font-family:var(--mono);font-weight:600;font-size:21px;line-height:1;margin-top:7px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.s3 .v small{font-size:11px;font-weight:500;color:var(--ash);margin-left:3px}
+.s3 .u{font-family:var(--mono);font-size:10.5px;margin-top:6px;color:var(--rust);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s3 .u.mute{color:var(--ash)}
+.hero{display:flex;flex-direction:column}
+.hero .list{flex:0 0 auto}
+.hero .nav-row{margin-top:auto;padding-top:14px}
+.hero-top{align-items:stretch}
+.hero-l{display:flex;flex-direction:column;min-width:0}
+.hero-chips{margin-top:auto;padding-top:14px}
+.hero .list{margin-top:18px}
+.hero .list li{padding:15px 0}
+.hero .nm{font-size:16.5px}
+.hero .rp{font-size:27px}
+.bp-pill.g,.bp-pill.y,.bp-pill.r{color:var(--ivory);border-color:var(--rule);background:#0E100E}
+.bp-pill.g .dotz{background:#8DFF75;box-shadow:0 0 8px rgba(141,255,117,.8)}
+.bp-pill.y .dotz{background:#FFC83C;box-shadow:0 0 8px rgba(255,200,60,.8)}
+.bp-pill.r .dotz{background:#FF5C5C;box-shadow:0 0 8px rgba(255,92,92,.8)}
+.bp-pill.need{color:var(--ivory);border-color:rgba(223,255,67,.35);background:#0E100E}
+.bp-pill.need .ic{color:var(--rust)}
+@media (max-width:370px){.s3 .v{font-size:18px}.s3 button{padding:10px 10px 9px}.hero .nm{font-size:15px}.hero .rp{font-size:24px}.hero .list li{padding:13px 0}}
 </style>
 </head>
 <body>
@@ -561,7 +587,7 @@ body.locked{overflow:hidden}
         </div>
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 8</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 9</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -866,7 +892,7 @@ function phases(){
   var w=W[cur],R=rounds(w);
   for(var i=0;i<R;i++){
     out.push({kind:'round',items:w.ex,next:R>1?'Круг пройден':'Готово',
-      title: w.single ? w.name : (w.name.replace('Тренировка ','')+' · круг <em>'+(i+1)+'</em> из '+R)});
+      title: w.single ? w.name : (w.name.replace('Тренировка ','')+' · <span class="nw">круг <em>'+(i+1)+'</em> из '+R+'</span>')});
   }
   if(w.core)out.push({kind:'core',title:'Блок <em>кора</em>',items:w.core,next:'Кор пройден'});
   return out;
@@ -961,6 +987,7 @@ function render(){
   }
   $('#back').style.display=step>0?'':'none';
   drawRings(P);
+  fitHero();
 }
 $('#week').addEventListener('click',function(e){
   var c=e.target.closest('[data-d]'); if(!c)return;
@@ -1580,7 +1607,16 @@ $('#bd-goal-save').addEventListener('click',function(){
   renderForecast(); renderMot(); sndRound(); toast('Цель сохранена','target');
 });
 function renderMot(){
-  var F=forecast(), sk=streak(byDay()), parts=[];
+  var F=forecast(), sk=streak(byDay()), ws=bodySorted().filter(function(r){return r.w}), lw=ws.length?ws[ws.length-1].w:null;
+  var u1=lw===null?'<div class="u mute">внести</div>':(F?(lw-F.goal<=0?'<div class="u">цель есть</div>':'<div class="u">до цели −'+fmt1(lw-F.goal)+'</div>'):'');
+  $('#mot').innerHTML='<div class="s3">'
+    +'<button data-go="body"><div class="k">Вес</div><div class="v">'+(lw===null?'—':fmt1(lw))+'<small>кг</small></div>'+u1+'</button>'
+    +'<button data-go="bp"><div class="k">Утро подряд</div><div class="v">'+sk+'</div><div class="u mute">'+plural(sk,'день','дня','дней')+'</div></button>'
+    +'<button data-open="sh-prog"><div class="k">Силовых</div><div class="v">'+TOT+'</div><div class="u mute">этап '+ROMAN[st]+'</div></button>'
+    +'</div>';
+  fitHero();
+  return;
+  var parts=[];
   if(F){var left=F.cur-F.goal, e=eta(left,F.rate);
     parts.push(e.ok?'Цель по весу достигнута':(e.d?'До цели <em>'+fmt1(left)+' кг</em> · '+weeksTxt(e.w).replace('≈ ','≈'):'До цели <em>'+fmt1(left)+' кг</em>'));}
   if(TOT)parts.push('силовых <em>'+TOT+'</em>');
@@ -1649,6 +1685,17 @@ function renderWL(){
   box.innerHTML=head+'<div class="legend"><span><i style="background:#DFFF43"></i>силовые</span><span><i style="background:#9FB2C8"></i>кардио</span></div>'
     +'<div class="chart"><svg viewBox="0 0 '+Wd+' '+H+'" role="img" aria-label="Средний пульс на тренировках">'+g+'</svg></div>'+trend;
 }
+
+/* ---- карточка тренировки на всю высоту экрана ---- */
+function fitHero(){
+  var h=document.querySelector('.hero'); if(!h||TAB!=='train')return;
+  h.style.minHeight='';
+  var tb=document.querySelector('.tabbar'), top=h.getBoundingClientRect().top+window.scrollY;
+  var avail=window.innerHeight-top-(tb?tb.getBoundingClientRect().height:0)-14;
+  if(avail>h.offsetHeight)h.style.minHeight=avail+'px';
+}
+window.addEventListener('resize',function(){fitHero()});
+document.addEventListener('click',function(e){var g=e.target.closest('[data-go]'); if(g)showTab(g.getAttribute('data-go'))});
 
 /* ================= выдвижные панели ================= */
 var SHEET=null;
