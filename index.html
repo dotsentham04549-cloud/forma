@@ -343,6 +343,32 @@ body.locked{overflow:hidden}
 .bp-pill.need{color:var(--ivory);border-color:rgba(223,255,67,.35);background:#0E100E}
 .bp-pill.need .ic{color:var(--rust)}
 @media (max-width:370px){.s3 .v{font-size:18px}.s3 button{padding:10px 10px 9px}.hero .nm{font-size:15px}.hero .rp{font-size:24px}.hero .list li{padding:13px 0}}
+/* ===== сборка 10: алкоголь ===== */
+.al-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px;position:relative;z-index:1}
+.al-v{font-family:var(--mono);font-weight:600;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.al-v small{font-size:13px;color:var(--ash);font-weight:500;margin-left:4px}
+.al-v.over{color:#FFC83C}
+.al-free{font-size:12.5px;color:var(--ash);text-align:right}
+.al-free b{color:var(--ivory);font-family:var(--mono)}
+.al-sub{font-family:var(--mono);font-size:11px;color:var(--ash);margin-top:8px;position:relative;z-index:1}
+#al-p .bar{margin-top:12px}
+#al-p .bar i.over{background:#FFC83C}
+#al-p .chips{padding:0;margin-top:14px;position:relative;z-index:1}
+#al-ml{margin-top:8px}
+.al-add{margin-top:12px}
+.al-own{min-width:96px;flex:1 1 96px;background:#0C0E0C;border:1px solid var(--rule);border-radius:999px;padding:9px 14px;color:var(--ivory);font-family:var(--mono);font-size:12px;text-align:center;-moz-appearance:textfield}
+.al-own::-webkit-outer-spin-button,.al-own::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.al-own:focus{outline:none;border-color:var(--rust)}
+.al-own.on{border-color:var(--rust);color:var(--rust)}
+.al-add input{color-scheme:dark;min-width:0}
+.al-add label{min-width:0}
+.al-add .act{margin-top:0}
+.cd .cdot.al{background:#FFC83C}
+.cd .cdot.al2{background:#FF5C5C}
+.al-cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;position:relative;z-index:1}
+.al-cmp>div{padding:10px 12px;border:1px solid var(--rule);border-radius:12px;background:#0E100E}
+.al-cmp .v{font-family:var(--mono);font-weight:600;font-size:19px;margin-top:6px}
+.al-cmp .v.up{color:#FFC83C}
 </style>
 </head>
 <body>
@@ -483,6 +509,26 @@ body.locked{overflow:hidden}
       </div>
     </div>
 
+    <div class="panel" id="al-p">
+      <div class="ph"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg><span>Алкоголь</span></div>
+      <div id="al-week"></div>
+      <div class="chips" id="al-kind"></div>
+      <div class="chips swrap" id="al-ml"></div>
+      <div class="goal-row al-add">
+        <label><span class="caps">Дата</span><input id="al-date" type="date"></label>
+        <button class="act" id="al-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span>Записать</span></button>
+      </div>
+      <div class="cal-head" style="margin-top:18px">
+        <button class="cal-nav" data-am="-1" aria-label="Предыдущий месяц"><svg class="ic" aria-hidden="true"><use href="#i-caret-left"/></svg></button>
+        <div class="caps" id="al-title">—</div>
+        <button class="cal-nav" data-am="1" aria-label="Следующий месяц"><svg class="ic" aria-hidden="true"><use href="#i-caret-right"/></svg></button>
+      </div>
+      <div class="cal-wd"><span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>вс</span></div>
+      <div class="cal" id="al-cal"></div>
+      <div id="al-day"></div>
+      <div id="al-bp"></div>
+    </div>
+
     <div class="panel" id="bd-stats-p" hidden>
       <div class="ph"><svg class="ic" aria-hidden="true"><use href="#i-gauge"/></svg><span>Итоги</span></div>
       <div class="stats" id="bd-stats"></div>
@@ -587,7 +633,7 @@ body.locked{overflow:hidden}
         </div>
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 9</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 11</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -1462,7 +1508,7 @@ $('#bd-add').addEventListener('click',function(){
 function avgW(list,from,to){var a=list.filter(function(r){return r.w&&r.date>=from&&r.date<=to}); return a.length?a.reduce(function(x,r){return x+r.w},0)/a.length:null}
 function dShift(n){var d=new Date();d.setDate(d.getDate()+n);return dkey(d)}
 function renderBody(){
-  renderForecast(); renderMot();
+  renderForecast(); renderMot(); renderAlc();
   var all=bodySorted(), ws=all.filter(function(r){return r.w}), wa=all.filter(function(r){return r.waist});
   $('#bd-stats-p').hidden=!all.length; $('#bd-chart-p').hidden=ws.length<2&&wa.length<2;
   if(all.length){
@@ -1520,6 +1566,87 @@ $('#bd-list').addEventListener('click',function(e){
   var id=b.getAttribute('data-bdel'); BODY=BODY.filter(function(r){return r.id!==id}); keepBody(); renderBody(); toast('Запись удалена','x');
 });
 window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(function(){if(TAB==='bp'&&ENT.length)drawChart();if(TAB==='body')renderBody()},200)});
+
+/* ================= алкоголь ================= */
+var ALK='krugi.alc', ALC=[], AL_NORM=200, AL_TIMES=1;
+try{var ra=JSON.parse(localStorage.getItem(ALK)||'null'); if(ra&&isArr(ra.items))ALC=ra.items.filter(function(r){return r&&r.date&&r.ml>0}); if(ra&&ra.norm>0)AL_NORM=+ra.norm}catch(e){}
+function keepAlc(){try{localStorage.setItem(ALK,JSON.stringify({v:1,norm:AL_NORM,items:ALC}))}catch(e){}}
+/* всё считается в мл рома 35° */
+var AK={rum:{n:'Ром 35°',eq:1,kc:2.0,ml:[50,100,120,200]},strong:{n:'40°',eq:40/35,kc:2.3,ml:[50,100,200]},wine:{n:'Вино',eq:12/35,kc:.75,ml:[150,300,750]},beer:{n:'Пиво',eq:5/35,kc:.45,ml:[500,1000,1500]}};
+var alKind='rum', alMl=120, alOwn='', ALM=0, ALSEL=null;
+function eqMl(r){return r.ml*(AK[r.kind]?AK[r.kind].eq:1)}
+function kcal(r){return r.ml*(AK[r.kind]?AK[r.kind].kc:2.0)}
+function mlTxt(ml){return ml>=1000?fmt1(ml/1000).replace(',0','')+' л':ml+' мл'}
+function weekStart(){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return dkey(d)}
+function alByDay(){var m={};ALC.forEach(function(r){(m[r.date]=m[r.date]||[]).push(r)});return m}
+function renderAlcForm(){
+  $('#al-kind').innerHTML=Object.keys(AK).map(function(k){return '<button class="chip" data-ak="'+k+'" aria-pressed="'+(k===alKind)+'">'+AK[k].n+'</button>'}).join('');
+  if(!alOwn&&AK[alKind].ml.indexOf(alMl)<0)alMl=AK[alKind].ml[alKind==='rum'?2:0];
+  $('#al-ml').innerHTML=AK[alKind].ml.map(function(v){return '<button class="chip" data-aml="'+v+'" aria-pressed="'+(!alOwn&&v===alMl)+'">'+mlTxt(v)+'</button>'}).join('')
+    +'<input class="al-own'+(alOwn?' on':'')+'" id="al-own" type="number" inputmode="numeric" placeholder="своё, мл" value="'+alOwn+'" aria-label="Своё количество, мл">';
+}
+function renderAlc(){
+  if(!$('#al-p'))return;
+  if(!$('#al-date').value)$('#al-date').value=dkey();
+  renderAlcForm();
+  var ws=weekStart(), wk=ALC.filter(function(r){return r.date>=ws&&r.date<=dkey()});
+  var eq=Math.round(wk.reduce(function(a,r){return a+eqMl(r)},0)), kc=Math.round(wk.reduce(function(a,r){return a+kcal(r)},0));
+  var days={}; wk.forEach(function(r){days[r.date]=1}); var nd=Object.keys(days).length;
+  var over=eq>AL_NORM||nd>AL_TIMES;
+  var last=ALC.length?ALC.map(function(r){return r.date}).sort().pop():null;
+  var free=last?Math.max(0,dayN(dkey())-dayN(last)):null;
+  $('#al-week').innerHTML='<div class="al-top"><div class="al-v'+(over?' over':'')+'">'+eq+'<small>/ '+AL_NORM+' мл рома</small></div>'
+    +(free!==null&&free>0?'<div class="al-free">без алкоголя<br><b>'+free+'</b> '+plural(free,'день','дня','дней')+'</div>':'')+'</div>'
+    +'<div class="bar"><i class="'+(over?'over':'')+'" style="width:'+Math.min(100,eq/AL_NORM*100).toFixed(1)+'%"></i></div>'
+    +'<div class="al-sub">неделя · '+nd+' '+plural(nd,'раз','раза','раз')+' из '+AL_TIMES+(kc?' · ~'+kc+' ккал':'')+'</div>';
+  /* календарь */
+  var m=alByDay(), now=new Date(), base=new Date(now.getFullYear(),now.getMonth()+ALM,1);
+  var y=base.getFullYear(), mo=base.getMonth(), off=(base.getDay()+6)%7, dim=new Date(y,mo+1,0).getDate(), h='';
+  $('#al-title').textContent=MONN[mo]+' '+y;
+  $$('[data-am]')[1].disabled=(ALM>=0);
+  for(var i=0;i<off;i++)h+='<span class="cd blank"></span>';
+  for(var d=1;d<=dim;d++){
+    var dt=new Date(y,mo,d), k=dkey(dt), fut=dt>now&&k!==dkey(now), rec=m[k], dot='';
+    if(rec){var e=rec.reduce(function(a,r){return a+eqMl(r)},0); dot='<i class="cdot '+(e>AL_NORM?'al2':'al')+'"></i>'}
+    h+='<button class="cd'+(k===dkey(now)?' td':'')+(k===ALSEL?' on':'')+(fut?' fut':'')+'" data-aday="'+k+'"'+(fut?' disabled':'')+'><b>'+d+'</b><span class="dd">'+dot+'</span></button>';
+  }
+  $('#al-cal').innerHTML=h;
+  var box=$('#al-day');
+  if(ALSEL&&m[ALSEL]){
+    box.innerHTML='<ul class="dj-list">'+m[ALSEL].map(function(r){
+      return '<li><div class="r"><b>'+mlTxt(r.ml)+'</b><span>'+(AK[r.kind]?AK[r.kind].n:'').toLowerCase()+'</span></div><div class="m"><div class="w" style="margin-top:0">'+ALSEL.split('-').reverse().join('.')+' · ~'+Math.round(kcal(r))+' ккал</div></div>'
+        +'<button class="del" data-adel="'+r.id+'" aria-label="Удалить">'+IC('x')+'</button></li>'}).join('')+'</ul>';
+  }else box.innerHTML='';
+  /* давление утром после */
+  var bd=byDay(), aft=[], norm=[], lim=dShift(-90), dd={};
+  Object.keys(m).forEach(function(k){var t=new Date(k+'T12:00');t.setDate(t.getDate()+1);dd[dkey(t)]=1});
+  Object.keys(bd).forEach(function(k){ if(k<lim||!bd[k].am.length)return; var r=bd[k].am[bd[k].am.length-1]; (dd[k]?aft:norm).push(r)});
+  var out='';
+  if(aft.length&&norm.length>=3){
+    var as=avg(aft,function(r){return r.s}), ad=avg(aft,function(r){return r.d}), ns=avg(norm,function(r){return r.s}), nd2=avg(norm,function(r){return r.d});
+    out='<div class="al-cmp"><div><div class="caps">Утро после</div><div class="v'+(as-ns>=5||ad-nd2>=4?' up':'')+'">'+as+'/'+ad+'</div></div>'
+      +'<div><div class="caps">Обычное утро</div><div class="v">'+ns+'/'+nd2+'</div></div></div>';
+  }
+  $('#al-bp').innerHTML=out;
+}
+$('#al-kind').addEventListener('click',function(e){var c=e.target.closest('[data-ak]');if(!c)return;alKind=c.getAttribute('data-ak');if(!alOwn)alMl=-1;renderAlcForm()});
+$('#al-ml').addEventListener('click',function(e){var c=e.target.closest('[data-aml]');if(!c)return;alOwn='';alMl=+c.getAttribute('data-aml');renderAlcForm()});
+$('#al-ml').addEventListener('input',function(e){if(e.target.id!=='al-own')return;var v=parseInt(e.target.value,10);alOwn=e.target.value;
+  e.target.classList.toggle('on',!!alOwn); $$('#al-ml [data-aml]').forEach(function(c){c.setAttribute('aria-pressed',String(!alOwn&&+c.getAttribute('data-aml')===alMl))});
+  if(v>0)alMl=v});
+$('#al-add').addEventListener('click',function(){
+  var dt=$('#al-date').value||dkey(); if(dt>dkey()){toast('Дата в будущем','warning');return}
+  if(alOwn){var v=parseInt(alOwn,10); if(!(v>=1&&v<=5000)){toast('Количество — от 1 до 5000 мл','warning');return} alMl=v}
+  if(!(alMl>0))return;
+  ALC.push({id:uid(),date:dt,kind:alKind,ml:alMl}); keepAlc(); ALSEL=null; alOwn=''; renderAlc(); sndOk(); toast('Записано: '+mlTxt(alMl),'check-circle');
+});
+$('#al-cal').addEventListener('click',function(e){var b=e.target.closest('[data-aday]');if(!b)return;var k=b.getAttribute('data-aday');ALSEL=(ALSEL===k?null:k);renderAlc()});
+$('#al-p').addEventListener('click',function(e){
+  var n=e.target.closest('[data-am]'); if(n&&!n.disabled){ALM=Math.min(0,ALM+(+n.getAttribute('data-am')));ALSEL=null;renderAlc();return}
+  var b=e.target.closest('[data-adel]'); if(!b)return;
+  if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='Удалить?';setTimeout(function(){if(b.isConnected){b.classList.remove('arm');b.innerHTML=IC('x')}},3000);return}
+  var id=b.getAttribute('data-adel'); ALC=ALC.filter(function(r){return r.id!==id}); keepAlc(); renderAlc(); toast('Запись удалена','x');
+});
 
 /* ================= прогноз и мотивация ================= */
 var GOAL=null;
