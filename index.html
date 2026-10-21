@@ -373,6 +373,20 @@ body.locked{overflow:hidden}
 .upd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:10px 12px 10px 14px;border:1px solid rgba(223,255,67,.45);border-radius:14px;background:rgba(223,255,67,.07);font-size:13px}
 .upd b{font-family:var(--mono);color:var(--rust)}
 .upd .act{margin:0;width:auto;padding:9px 14px;font-size:11px}
+/* ===== сборка 16: итоги ===== */
+.sum{margin-top:16px;padding:13px 14px;border:1px solid var(--rule);border-radius:14px;background:#0E100E;text-align:left;position:relative;z-index:1}
+.sum-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:11.5px;color:var(--ash)}
+.sum-row b{color:var(--ivory);font-weight:600}
+.sum-c{margin-top:10px}
+.sum-c p{display:flex;gap:8px;align-items:flex-start;margin:0;padding:7px 0 0;font-size:13.5px;line-height:1.45;color:var(--ivory)}
+.sum-c p .ic{width:16px;height:16px;flex:none;margin-top:2px;color:var(--rust)}
+.sum-c p.warn .ic{color:#FFC83C}
+.wk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.wk-grid>div{padding:11px 12px;border:1px solid var(--rule);border-radius:12px;background:#0E100E;min-width:0}
+.wk-grid .v{font-family:var(--mono);font-weight:600;font-size:19px;margin-top:6px;white-space:nowrap}
+.wk-grid .v small{font-size:11px;color:var(--ash);font-weight:500;margin-left:3px}
+.wk-grid .h{font-family:var(--mono);font-size:10.5px;color:var(--ash);margin-top:5px}
+#wk-open{width:100%;justify-content:space-between;margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -595,11 +609,23 @@ body.locked{overflow:hidden}
       <div class="sheet-grab"></div>
       <div class="sheet-head"><span>Прогрессия</span><button class="sheet-x" data-close aria-label="Закрыть"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
       <div class="sheet-body">
+    <button class="chip" id="wk-open" data-open="sh-week"><span>Итоги недели</span><svg class="ic" aria-hidden="true"><use href="#i-caret-right"/></svg></button>
     <div class="chips swrap" id="stages"></div>
     <div class="tally" id="tally"></div>
     <div class="tally" id="cycle"></div>
     <div class="tally" id="wl"></div>
     <dl id="info"></dl>
+      </div>
+    </div>
+  </div>
+  <div class="sheet" id="sh-week" hidden role="dialog" aria-modal="true" aria-label="Итоги недели">
+    <div class="sheet-bg" data-close></div>
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head"><span>Итоги недели</span><button class="sheet-x" data-close aria-label="Закрыть"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+      <div class="sheet-body">
+        <div class="chips" id="wk-sel" style="padding:0"><button class="chip" data-wk="0" aria-pressed="true">Эта неделя</button><button class="chip" data-wk="1" aria-pressed="false">Прошлая</button></div>
+        <div id="wk-body"></div>
       </div>
     </div>
   </div>
@@ -639,7 +665,7 @@ body.locked{overflow:hidden}
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
         <div class="set-sec set-row" id="nf-row" hidden><span>Напоминания</span><button class="chip" id="nf" aria-pressed="true">Вкл</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 15</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 16</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -798,6 +824,11 @@ var CY=1, KG=16, TOT=0, LV={};   /* цикл, вес гири, всего сил
 var KGS=[8,12,16,20,24,28,32], OPEN={};
 /* данные с часов после тренировки */
 var WLOG=[], SKIPWL={};
+/* журнал выполненных тренировок */
+var TLOG=[];
+try{var rt=JSON.parse(localStorage.getItem('krugi.tlog')||'null'); if(rt&&Object.prototype.toString.call(rt.items)==='[object Array]')TLOG=rt.items}catch(e){}
+function keepTL(){try{localStorage.setItem('krugi.tlog',JSON.stringify({v:1,items:TLOG}))}catch(e){}}
+function tlToday(k){var d=dkey();for(var i=0;i<TLOG.length;i++)if(TLOG[i].date===d&&TLOG[i].kind===k)return TLOG[i];return null}
 try{var rw=JSON.parse(localStorage.getItem('krugi.wlog')||'null'); if(rw&&Object.prototype.toString.call(rw.items)==='[object Array]')WLOG=rw.items}catch(e){}
 function keepWL(){try{localStorage.setItem('krugi.wlog',JSON.stringify({v:1,items:WLOG}))}catch(e){}}
 try{
@@ -1041,7 +1072,7 @@ function render(){
     $('#w-step').innerHTML='<em>Закрыто</em>';
     var okDay=cur&&!(z==='r');
     $('#list').innerHTML='<div class="closed">'+(okDay?'<svg class="done-mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M20 33l8 8 16-17"/></svg>':'')+'<div class="t">'+ttl+'</div>'
-      +'</div>'+(okDay&&sel===todayIdx()?watchForm(cur):'');
+      +(okDay&&sel===todayIdx()?sumCard(cur):'')+'</div>'+(okDay&&sel===todayIdx()?watchForm(cur):'');
     $('#next').style.display='none';
   }
   $('#back').style.display=step>0?'':'none';
@@ -1068,6 +1099,7 @@ $('#next').addEventListener('click',function(){
     preset=null; tSet(restSec());
     sndDone();
     if(cur&&W[cur].core&&!counted&&bpZone()!=='r'){counted=true;LOG[st]++;TOT++;keep();renderStage();renderMot()}
+    if(cur&&bpZone()!=='r'&&sel===todayIdx()&&!tlToday(cur)){TLOG.push({id:uid(),date:dkey(),kind:cur,ts:Date.now(),st:st});if(TLOG.length>1500)TLOG=TLOG.slice(-1500);keepTL();render();planNotifs()}
   }
 });
 $('#back').addEventListener('click',function(){if(step>0){step--;render()}});
@@ -1091,7 +1123,7 @@ $('#tally').addEventListener('click',function(e){
   counted=false;
 });
 $('#list').addEventListener('click',function(e){
-  if(e.target.closest('[data-wl-skip]')){SKIPWL[dkey()+'|'+cur]=1;render();return}
+  if(e.target.closest('[data-wl-skip]')){SKIPWL[dkey()+'|'+cur]=1;var tl=tlToday(cur);if(tl){tl.skip=1;keepTL()}render();planNotifs();return}
   if(e.target.closest('[data-wl-save]')){saveWatch();return}
   var lb=e.target.closest('[data-lv]');
   if(lb){LV[lb.getAttribute('data-ex')]=+lb.getAttribute('data-lv');keep();render();toast('Уровень '+(+lb.getAttribute('data-lv')+1)+' выбран','sparkle');return}
@@ -1781,6 +1813,7 @@ function wlHint(r){
 }
 function watchForm(k){
   var r=wlFind(k);
+  if(r)return '';  /* данные уже в итоге тренировки */
   if(r){
     var parts=[];
     if(r.min)parts.push(r.min+' мин');
@@ -1807,7 +1840,7 @@ function saveWatch(){
   if(kc!==null&&!(kc>=1&&kc<=3000))return bad('Калории — от 1 до 3000.');
   var w=W[cur];
   WLOG.push({id:uid(),key:wlKey(cur),date:dkey(),kind:cur,type:w&&w.single?'cardio':'power',min:mi,avg:av,max:mx,kcal:kc});
-  keepWL(); render();
+  keepWL(); render(); planNotifs();
   toast('Сохранено','check-circle');
 }
 function renderWL(){
@@ -1834,6 +1867,79 @@ function renderWL(){
     +'<div class="chart"><svg viewBox="0 0 '+Wd+' '+H+'" role="img" aria-label="Средний пульс на тренировках">'+g+'</svg></div>'+trend;
 }
 
+/* ---- итог тренировки ---- */
+function pLine(t,warn){return '<p'+(warn?' class="warn"':'')+'>'+IC(warn?'warning':'check-circle')+'<span>'+t+'</span></p>'}
+function sumCard(k){
+  var w=W[k], r=wlFind(k), g=gateRec(), parts=[], C=[];
+  if(w.core){var need=NEED[st], done=LOG[st]; parts.push('этап '+ROMAN[st]+' · <b>'+done+' из '+need+'</b>')}
+  else parts.push('<b>'+(EX[k==='long'?'longc':'cardio'].min[st])+' мин</b> по плану');
+  if(g)parts.push('давление <b>'+g.s+'/'+g.d+'</b>');
+  if(r){ if(r.min)parts.push('<b>'+r.min+' мин</b>'); if(r.avg)parts.push('пульс <b>'+r.avg+(r.max?' / '+r.max:'')+'</b>'); if(r.kcal)parts.push('<b>'+r.kcal+'</b> ккал') }
+  /* выводы */
+  if(r&&r.max&&r.max>140)C.push(pLine('Пульс доходил до '+r.max+' — в следующий раз отдыхай между кругами дольше.',1));
+  if(r&&r.avg){
+    var prev=WLOG.filter(function(x){return x.kind===k&&x.avg&&x.date<dkey()}).sort(function(a,b){return a.date<b.date?1:-1})[0];
+    if(prev){var dd=r.avg-prev.avg;
+      if(dd<=-3)C.push(pLine('Пульс '+r.avg+' — на '+(-dd)+' ниже прошлого раза. Выносливость растёт.'));
+      else if(dd>=5)C.push(pLine('Пульс на '+dd+' выше прошлого раза — проверь сон и отдых.',1));
+      else C.push(pLine('Пульс на уровне прошлого раза.'));
+    }
+  }
+  if(w.core){var left=NEED[st]-LOG[st];
+    if(left<=0&&st<4)C.push(pLine('Этап '+ROMAN[st]+' закрыт — переходи на этап '+ROMAN[st+1]+' в «Прогрессии».'));
+    else if(left>0&&left<=2)C.push(pLine('Ещё '+left+' '+plural(left,'тренировка','тренировки','тренировок')+' — и этап '+ROMAN[Math.min(4,st+1)]+'.'));
+  }
+  var ws=weekStart(), pw=TLOG.filter(function(x){return x.date>=ws&&W[x.kind]&&W[x.kind].core}).length;
+  if(w.core&&pw>=3)C.push(pLine('Все силовые на этой неделе сделаны.'));
+  else if(w.core&&pw>0)C.push(pLine('Силовых на неделе: '+pw+' из 3.'));
+  if(!C.length&&!r)C.push(pLine('Внеси данные с часов — будет с чем сравнить в следующий раз.'));
+  return '<div class="sum"><div class="sum-row">'+parts.map(function(x){return '<span>'+x+'</span>'}).join('')+'</div>'
+    +'<div class="sum-c">'+C.slice(0,2).join('')+'</div></div>';
+}
+
+/* ---- итоги недели ---- */
+var WKOFF=0;
+function wkRange(off){var s=new Date(weekStart()+'T12:00');s.setDate(s.getDate()-7*off);var e=new Date(s);e.setDate(e.getDate()+6);return [dkey(s),dkey(e)]}
+function sg(n){return n>0?'+'+n:n<0?'−'+(-n):'±0'}
+function amAvg(a,b){var m=byDay(),L=[];Object.keys(m).forEach(function(k){if(k>=a&&k<=b&&m[k].am.length)L.push(m[k].am[m[k].am.length-1])});return L.length?{s:avg(L,function(r){return r.s}),d:avg(L,function(r){return r.d}),n:L.length}:null}
+function renderWeek(){
+  $$('#wk-sel .chip').forEach(function(c){c.setAttribute('aria-pressed',String(+c.getAttribute('data-wk')===WKOFF))});
+  var R0=wkRange(WKOFF), R1=wkRange(WKOFF+1), a=R0[0], b=R0[1];
+  var tl=TLOG.filter(function(x){return x.date>=a&&x.date<=b});
+  var pw=tl.filter(function(x){return W[x.kind]&&W[x.kind].core}).length, cd=tl.filter(function(x){return x.kind==='cardio'||x.kind==='long'}).length;
+  var all=bodySorted(), w0=avgW(all,a,b), w1=avgW(all,R1[0],R1[1]), dw=(w0!==null&&w1!==null)?w0-w1:null;
+  var bp0=amAvg(a,b), bp1=amAvg(R1[0],R1[1]);
+  var al=ALC.filter(function(r){return r.date>=a&&r.date<=b}), alq=Math.round(al.reduce(function(z,r){return z+eqMl(r)},0));
+  var pl=WLOG.filter(function(x){return x.date>=a&&x.date<=b&&x.type==='power'&&x.avg}), pa=pl.length?avg(pl,function(x){return x.avg}):null;
+  var pl1=WLOG.filter(function(x){return x.date>=R1[0]&&x.date<=R1[1]&&x.type==='power'&&x.avg}), pa1=pl1.length?avg(pl1,function(x){return x.avg}):null;
+  function cell(k,v,h){return '<div><div class="caps">'+k+'</div><div class="v">'+v+'</div><div class="h">'+(h||'&nbsp;')+'</div></div>'}
+  var d1=a.split('-').reverse().slice(0,2).join('.'), d2=b.split('-').reverse().slice(0,2).join('.');
+  var h='<div class="al-sub" style="margin-top:12px">'+d1+' — '+d2+'</div><div class="wk-grid">'
+    +cell('Силовые',pw+'<small>из 3</small>','')
+    +cell('Кардио',cd+'<small>из 3</small>','')
+    +cell('Вес',w0!==null?fmt1(w0)+'<small>кг</small>':'—',dw!==null?sign(dw)+' кг к прошлой':'')
+    +cell('Давление утром',bp0?bp0.s+'/'+bp0.d:'—',bp0?(bp1?sg(bp0.s-bp1.s)+'/'+sg(bp0.d-bp1.d)+' к прошлой':bp0.n+' '+plural(bp0.n,'замер','замера','замеров')):'')
+    +cell('Пульс на силовых',pa?pa+'<small>уд/мин</small>':'—',pa&&pa1?sg(pa-pa1)+' к прошлой':'')
+    +cell('Алкоголь',alq+'<small>/ '+AL_NORM+' мл</small>',al.length?al.length+' '+plural(al.length,'раз','раза','раз'):'')
+    +'</div>';
+  /* выводы */
+  var C=[];
+  var over=WKOFF>0||new Date().getDay()===0;
+  if(pw>=3)C.push(pLine('Все силовые сделаны.')); else C.push(pLine('Силовых '+pw+' из 3.',over));
+  if(dw!==null){
+    if(dw<-1.2)C.push(pLine('Минус '+fmt1(-dw)+' кг — быстро. Следи, чтобы хватало белка.',1));
+    else if(dw<=-0.3)C.push(pLine('Минус '+fmt1(-dw)+' кг — темп правильный.'));
+    else if(dw<0.3)C.push(pLine('Вес стоит — смотри на талию и питание.',1));
+    else C.push(pLine('Вес плюс '+fmt1(dw)+' кг — проверь питание и алкоголь.',1));
+  }
+  if(bp0){ if(bp0.s>=135||bp0.d>=85)C.push(pLine('Утреннее давление выше цели. Держится несколько недель — скажи врачу.',1));
+    else if(bp1&&bp0.s-bp1.s<=-3)C.push(pLine('Давление ниже прошлой недели на '+(bp1.s-bp0.s)+'.')) }
+  if(alq>AL_NORM)C.push(pLine('Алкоголь сверх нормы.',1));
+  if(pa&&pa1&&pa-pa1<=-3)C.push(pLine('Пульс на силовых ниже на '+(pa1-pa)+' — выносливость растёт.'));
+  $('#wk-body').innerHTML=h+'<div class="sum-c" style="margin-top:12px">'+C.slice(0,4).join('')+'</div>';
+}
+$('#wk-sel').addEventListener('click',function(e){var c=e.target.closest('[data-wk]');if(!c)return;WKOFF=+c.getAttribute('data-wk');renderWeek()});
+
 /* ---- карточка тренировки на всю высоту экрана ---- */
 function fitHero(){
   var h=document.querySelector('.hero'); if(!h||TAB!=='train')return;
@@ -1854,6 +1960,7 @@ function openSheet(id){
   if(id==='sh-set')renderBk();
   if(id==='sh-bp'){renderBP()}
   if(id==='sh-time')renderTime();
+  if(id==='sh-week'){ if(!openSheet.keepWk)WKOFF=(new Date().getDay()===1&&new Date().getHours()<14)?1:0; openSheet.keepWk=0; renderWeek() }
   requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('open')})});
 }
 function closeSheet(now){
@@ -2004,6 +2111,11 @@ function doPlan(){
       var lb=0; try{lb=+(localStorage.getItem('krugi.lastBackup')||0)}catch(e){}
       var bt=at(lb?new Date(lb):now,20,30); bt.setDate(bt.getDate()+(lb?14:3)); if(bt<=now){bt=at(now,20,30);if(bt<=now)bt.setDate(bt.getDate()+1)}
       one(121,bt,'Резервная копия','Настройки → Сохранить файл','set');
+      /* через час после тренировки — если нет данных с часов */
+      var tt=TLOG.filter(function(x){return x.date===dkey()&&!x.skip&&!wlFind(x.kind)}).sort(function(a,b){return b.ts-a.ts})[0];
+      if(tt&&tt.ts+3600000>now.getTime())one(130,new Date(tt.ts+3600000),'Данные с часов','Время и пульс после тренировки','train');
+      /* итоги недели — воскресенье 20:00 */
+      rep(140,1,20,0,'Итоги недели готовы','Силовые, вес, давление','week');
       return LN.schedule({notifications:L});
     });
   }).catch(function(){});
@@ -2046,7 +2158,7 @@ if(NATIVE){
   }}catch(e){}
   try{var LN0=plug('LocalNotifications'); if(LN0)LN0.addListener('localNotificationActionPerformed',function(a){
     var tab=a&&a.notification&&a.notification.extra&&a.notification.extra.tab;
-    if(tab==='set'){showTab('train');openSheet('sh-set')} else if(tab==='bp'||tab==='body'||tab==='train')showTab(tab);
+    if(tab==='set'){showTab('train');openSheet('sh-set')} else if(tab==='week'){showTab('train');openSheet('sh-week')} else if(tab==='bp'||tab==='body'||tab==='train')showTab(tab);
   })}catch(e){}
   planNotifs();
   checkUpdate(true);
