@@ -37,6 +37,8 @@ jobs:
           cp index.html manifest.json icon-192.png icon-512.png icon-maskable-512.png build/www/
           cp -r fonts build/www/
           cp apkres/capacitor.config.json build/
+          echo '{"build": ${{ github.run_number }}}' > build/www/version.json
+          cat build/www/version.json
 
       - name: Capacitor project
         working-directory: build

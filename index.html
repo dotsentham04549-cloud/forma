@@ -369,6 +369,10 @@ body.locked{overflow:hidden}
 .al-cmp>div{padding:10px 12px;border:1px solid var(--rule);border-radius:12px;background:#0E100E}
 .al-cmp .v{font-family:var(--mono);font-weight:600;font-size:19px;margin-top:6px}
 .al-cmp .v.up{color:#FFC83C}
+/* ===== сборка 13: обновление APK ===== */
+.upd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:10px 12px 10px 14px;border:1px solid rgba(223,255,67,.45);border-radius:14px;background:rgba(223,255,67,.07);font-size:13px}
+.upd b{font-family:var(--mono);color:var(--rust)}
+.upd .act{margin:0;width:auto;padding:9px 14px;font-size:11px}
 </style>
 </head>
 <body>
@@ -382,6 +386,7 @@ body.locked{overflow:hidden}
   </div>
 
 
+  <div id="upd" hidden></div>
   <div id="v-train">
   <div id="mot"></div>
   <div class="week" id="week" role="group" aria-label="Дни недели"></div>
@@ -634,7 +639,7 @@ body.locked{overflow:hidden}
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
         <div class="set-sec set-row" id="nf-row" hidden><span>Напоминания</span><button class="chip" id="nf" aria-pressed="true">Вкл</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 12</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 13</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -1999,6 +2004,26 @@ function doPlan(){
     });
   }).catch(function(){});
 }
+/* ---- проверка новой версии APK на GitHub ---- */
+var APKV=0, UPD_URL='https://github.com/dotsentham04549-cloud/forma/releases/latest/download/forma.apk';
+function checkUpdate(force){
+  if(!NATIVE)return;
+  var last=0; try{last=+(sessionStorage.getItem('forma.updChk')||0)}catch(e){}
+  if(!force&&Date.now()-last<3*3600*1000&&checkUpdate.done)return;
+  try{sessionStorage.setItem('forma.updChk',String(Date.now()))}catch(e){}
+  checkUpdate.done=1;
+  fetch('version.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){
+    APKV=+v.build||0; if(APKV)$('#ver').textContent='ФОРМА · APK '+APKV;
+    return fetch('https://api.github.com/repos/dotsentham04549-cloud/forma/releases/latest',{cache:'no-store',headers:{'Accept':'application/vnd.github+json'}});
+  }).then(function(r){return r.ok?r.json():null}).then(function(rel){
+    var m=rel&&/apk-(\d+)/.exec(rel.tag_name||''), nv=m?+m[1]:0, box=$('#upd');
+    if(APKV&&nv>APKV){
+      box.innerHTML='<div class="upd"><span>Доступно обновление · <b>APK '+nv+'</b></span><button class="act" id="upd-go">'+IC('download-simple')+'<span>Скачать</span></button></div>';
+      box.hidden=false;
+    }else{box.hidden=true;box.innerHTML=''}
+  }).catch(function(){});
+}
+document.addEventListener('click',function(e){ if(e.target.closest('#upd-go'))location.href=UPD_URL });
 function renderNf(){
   if(!NATIVE)return;
   $('#nf-row').hidden=false; var on=nfOn();
@@ -2013,13 +2038,14 @@ if(NATIVE){
   try{var SB=plug('StatusBar'); if(SB){SB.setBackgroundColor({color:'#090A09'}).catch(function(){}); SB.setStyle({style:'DARK'}).catch(function(){})}}catch(e){}
   try{var AP=plug('App'); if(AP){
     AP.addListener('backButton',function(){ if(SHEET){closeSheet();return} if(TAB!=='train'){showTab('train');return} AP.exitApp() });
-    AP.addListener('appStateChange',function(st){ if(st&&st.isActive){renderMorning();renderPill();planNotifs()} });
+    AP.addListener('appStateChange',function(st){ if(st&&st.isActive){renderMorning();renderPill();planNotifs();checkUpdate()} });
   }}catch(e){}
   try{var LN0=plug('LocalNotifications'); if(LN0)LN0.addListener('localNotificationActionPerformed',function(a){
     var tab=a&&a.notification&&a.notification.extra&&a.notification.extra.tab;
     if(tab==='set'){showTab('train');openSheet('sh-set')} else if(tab==='bp'||tab==='body'||tab==='train')showTab(tab);
   })}catch(e){}
   planNotifs();
+  checkUpdate(true);
 }
 
 render(); renderBP(); tSet(restSec()); renderMorning(); renderMot();
