@@ -1,0 +1,87 @@
+name: APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'index.html'
+      - 'apk-res.zip'
+      - '.github/workflows/apk.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Web files
+        run: |
+          mkdir -p build/www apkres
+          unzip -q apk-res.zip -d apkres
+          cp index.html manifest.json icon-192.png icon-512.png icon-maskable-512.png build/www/
+          cp -r fonts build/www/
+          cp apkres/capacitor.config.json build/
+
+      - name: Capacitor project
+        working-directory: build
+        run: |
+          npm init -y > /dev/null
+          npm i --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/local-notifications@6 @capacitor/filesystem@6 @capacitor/share@6 @capacitor/status-bar@6 @capacitor/app@6
+          npx cap add android
+          npx cap sync android
+
+      - name: Icons, colors, permissions
+        working-directory: build/android/app/src/main
+        run: |
+          find res -name 'splash.png' -delete
+          cp -r "$GITHUB_WORKSPACE"/apkres/res/* res/
+          sed -i 's|<color name="colorPrimary">[^<]*|<color name="colorPrimary">#090A09|; s|<color name="colorPrimaryDark">[^<]*|<color name="colorPrimaryDark">#090A09|' res/values/colors.xml || true
+          if [ -f res/values/ic_launcher_background.xml ]; then sed -i 's|>[^<]*</color>|>#D4F500</color>|' res/values/ic_launcher_background.xml; fi
+          sed -i 's|<item name="windowNoTitle">true</item>|<item name="windowNoTitle">true</item><item name="android:statusBarColor">#090A09</item><item name="android:navigationBarColor">#090A09</item><item name="android:windowBackground">@color/forma_bg</item>|' res/values/styles.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="forma_bg">#090A09</color>\n</resources>\n' > res/values/forma_colors.xml
+          if grep -q 'Theme.SplashScreen' res/values/styles.xml; then
+            sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@drawable/splash</item><item name="windowSplashScreenBackground">#090A09</item>|' res/values/styles.xml
+          fi
+          grep -q 'POST_NOTIFICATIONS' AndroidManifest.xml || sed -i 's|</manifest>|    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>|' AndroidManifest.xml
+          grep -q 'RECEIVE_BOOT_COMPLETED' AndroidManifest.xml || sed -i 's|</manifest>|    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n</manifest>|' AndroidManifest.xml
+          cat res/values/styles.xml
+          cat AndroidManifest.xml
+
+      - name: Version
+        working-directory: build/android/app
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.${{ github.run_number }}\"/" build.gradle
+          grep -n "version" build.gradle
+
+      - name: Build APK
+        working-directory: build/android
+        run: |
+          mkdir -p ~/.android
+          cp "$GITHUB_WORKSPACE"/apkres/forma-debug.keystore ~/.android/debug.keystore
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE"/forma.apk
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: ФОРМА APK ${{ github.run_number }}
+          files: forma.apk
+          make_latest: true

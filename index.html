@@ -632,8 +632,9 @@ body.locked{overflow:hidden}
           <div id="bk-msg"></div>
         </div>
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
+        <div class="set-sec set-row" id="nf-row" hidden><span>Напоминания</span><button class="chip" id="nf" aria-pressed="true">Вкл</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 11</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 12</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -657,6 +658,9 @@ function toast(text,icon){
   clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove('show')},2200);
 }
 var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+/* APK (Capacitor) или обычный браузер */
+var NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+function plug(n){var C=window.Capacitor;if(!C)return null;return (C.Plugins&&C.Plugins[n])||(C.registerPlugin?C.registerPlugin(n):null)}
 var ROMAN=['I','II','III','IV','V'];
 
 /* ================= план ================= */
@@ -1245,7 +1249,7 @@ $('#bp-go').addEventListener('click',function(){
     return;
   }
   if(!(p>=30&&p<=220))p=null;
-  var en=addEntry(s,d,p,new Date().toISOString(),'до тренировки'); renderMorning(); toast(nRaw(en)>1?'Среднее из '+nRaw(en)+': '+en.s+'/'+en.d:'Замер записан','heartbeat');
+  var en=addEntry(s,d,p,new Date().toISOString(),'до тренировки'); renderMorning(); planNotifs(); toast(nRaw(en)>1?'Среднее из '+nRaw(en)+': '+en.s+'/'+en.d:'Замер записан','heartbeat');
   $('#bp-s').value='';$('#bp-d').value='';$('#bp-p').value='';
   sel=todayIdx(); step=0; counted=false;
   render(); renderBP(); tSet(restSec());
@@ -1306,7 +1310,7 @@ $('#dj-add').addEventListener('click',function(){
   var en=addEntry(s,d,p,ts.toISOString(),note);
   $('#dj-s').value='';$('#dj-d').value='';$('#dj-p').value='';$('#dj-note').value='';$('#dj-live').innerHTML='';
   $$('#dj-tags .chip').forEach(function(c){c.setAttribute('aria-pressed','false')});
-  djNow(); renderDiary(); sndRound(); toast(nRaw(en)>1?'Среднее из '+nRaw(en)+': '+en.s+'/'+en.d:'Запись добавлена','check-circle');
+  djNow(); renderDiary(); planNotifs(); sndRound(); toast(nRaw(en)>1?'Среднее из '+nRaw(en)+': '+en.s+'/'+en.d:'Запись добавлена','check-circle');
 });
 $('#dj-range').addEventListener('click',function(e){
   var c=e.target.closest('[data-r]'); if(!c)return;
@@ -1400,14 +1404,22 @@ function renderDiary(){
   renderList(); renderCal(); renderMorning(); renderMot();
 }
 function rows(){return sortedDesc().map(function(r){var t=new Date(r.ts);return [dm(t)+'.'+t.getFullYear(),hm(t),r.s,r.d,r.p||'',cls(r.s,r.d).tag,((nRaw(r)>1?'среднее из '+nRaw(r)+(r.note?', ':''):'')+(r.note||'')).replace(/[;\n]/g,',')]})}
+/* сохранение файла: в браузере — загрузка, в APK — «Поделиться» */
+function saveFile(name,text,mime){
+  if(NATIVE){
+    var FS=plug('Filesystem'), SH=plug('Share');
+    return FS.writeFile({path:name,data:text,directory:'CACHE',encoding:'utf8'}).then(function(r){
+      return SH.share({title:name,files:[r.uri]}).catch(function(e){ if(/cancel/i.test(String(e&&e.message)))throw e; return SH.share({title:name,url:r.uri}) });
+    });
+  }
+  return new Promise(function(ok,no){try{var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();ok()}catch(e){no(e)}});
+}
 $('#dj-csv').addEventListener('click',function(){
   if(!ENT.length){$('#dj-msg').textContent='Пока нечего выгружать.';return}
   var csv='﻿Дата;Время;Верхнее;Нижнее;Пульс;Оценка;Заметка\n'+rows().map(function(x){return x.join(';')}).join('\n');
-  try{
-    var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-    a.download='davlenie-'+dkey()+'.csv'; document.body.appendChild(a); a.click(); a.remove();
-    $('#dj-msg').textContent='';toast('Файл сохранён','download-simple');
-  }catch(e){$('#dj-msg').textContent='Не получилось сохранить файл — используй «Скопировать текстом».'}
+  saveFile('davlenie-'+dkey()+'.csv',csv,'text/csv;charset=utf-8').then(function(){
+    $('#dj-msg').textContent=''; if(!NATIVE)toast('Файл сохранён','download-simple');
+  },function(e){ if(!/cancel/i.test(String(e&&e.message)))$('#dj-msg').textContent='Не получилось сохранить файл — используй «Скопировать текстом».'});
 });
 $('#dj-copy').addEventListener('click',function(){
   if(!ENT.length){$('#dj-msg').textContent='Пока нечего копировать.';return}
@@ -1503,7 +1515,7 @@ $('#bd-add').addEventListener('click',function(){
   if(w!==null)r.w=w; if(wa!==null)r.waist=wa; if(ch!==null)r.chest=ch; if(hp!==null)r.hips=hp;
   keepBody();
   ['#bd-w','#bd-waist','#bd-chest','#bd-hips'].forEach(function(id){$(id).value=''});
-  renderBody(); sndRound(); toast('Сохранено','check-circle');
+  renderBody(); planNotifs(); sndRound(); toast('Сохранено','check-circle');
 });
 function avgW(list,from,to){var a=list.filter(function(r){return r.w&&r.date>=from&&r.date<=to}); return a.length?a.reduce(function(x,r){return x+r.w},0)/a.length:null}
 function dShift(n){var d=new Date();d.setDate(d.getDate()+n);return dkey(d)}
@@ -1900,14 +1912,14 @@ function renderBk(){
   var old=!t||Date.now()-t>14*864e5;
   $('#bk-info').innerHTML='Записей давления: <b>'+ENT.length+'</b>, тела: <b>'+BODY.length+'</b>, тренировок: <b>'+TOT+'</b>.<br>'
     +'Последняя: <b'+(old?' style="color:#FFC83C"':'')+'>'+(t?ago(t):'ещё не делалась')+'</b>';
-  var f=bkFile(); $('#bk-share').hidden=!(navigator.canShare&&navigator.canShare({files:[f]}));
+  var f=bkFile(); $('#bk-share').hidden=NATIVE||!(navigator.canShare&&navigator.canShare({files:[f]}));
 }
 function markBackup(){try{localStorage.setItem('krugi.lastBackup',String(Date.now()))}catch(e){} renderBk()}
 $('#bk-save').addEventListener('click',function(){
-  var f=bkFile();
-  try{var a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name||'forma-kopiya.json';document.body.appendChild(a);a.click();a.remove();
-    markBackup(); toast('Сохранено в «Загрузки»','download-simple')}
-  catch(e){toast('Не получилось сохранить — попробуйте «Отправить»','warning')}
+  var body=JSON.stringify({app:'forma',v:1,created:new Date().toISOString(),data:collectData()});
+  saveFile('forma-kopiya-'+dkey()+'.json',body,'application/json').then(function(){
+    markBackup(); planNotifs(); toast(NATIVE?'Копия отправлена':'Сохранено в «Загрузки»','download-simple');
+  },function(e){ if(!/cancel/i.test(String(e&&e.message)))toast('Не получилось сохранить','warning')});
 });
 $('#bk-share').addEventListener('click',function(){
   var f=bkFile();
@@ -1943,6 +1955,73 @@ $('#bk-msg').addEventListener('click',function(e){
 /* ================= пуск ================= */
 $('#snd').setAttribute('aria-pressed',String(sndOn));
 setBtn($('#snd'),sndOn?'speaker-high':'speaker-slash',sndOn?'Звук':'Без звука');
+/* ================= APK: уведомления, кнопка «Назад», статус-бар ================= */
+function planNotifs(){
+  if(!NATIVE)return;
+  clearTimeout(planNotifs.t); planNotifs.t=setTimeout(doPlan,400);
+}
+function nfOn(){try{return localStorage.getItem('krugi.notif')!=='0'}catch(e){return true}}
+function at(d,h,m){var x=new Date(d);x.setHours(h,m,0,0);return x}
+function doPlan(){
+  var LN=plug('LocalNotifications'); if(!LN)return;
+  LN.checkPermissions().then(function(p){return p.display==='granted'?p:LN.requestPermissions()}).then(function(p){
+    if(p.display!=='granted')return;
+    return LN.getPending().then(function(pd){
+      var ids=(pd.notifications||[]).map(function(n){return {id:n.id}});
+      return ids.length?LN.cancel({notifications:ids}):null;
+    }).then(function(){
+      if(!nfOn())return;
+      var L=[], now=new Date(), ic={smallIcon:'ic_stat_forma',iconColor:'#DFFF43'};
+      function rep(id,wd,h,m,title,body,tab){L.push(Object.assign({id:id,title:title,body:body,extra:{tab:tab},schedule:{on:wd?{weekday:wd,hour:h,minute:m}:{hour:h,minute:m},allowWhileIdle:true}},ic))}
+      function one(id,when,title,body,tab){L.push(Object.assign({id:id,title:title,body:body,extra:{tab:tab},schedule:{at:when,allowWhileIdle:true}},ic))}
+      rep(101,0,7,10,'Давление и вес','Утренний замер','bp');
+      /* 9:00 — только если утреннего замера нет */
+      var m=byDay(), t9=at(now,9,0);
+      if(now>=t9||hasAM(m,now)){t9.setDate(t9.getDate()+1)}
+      one(102,t9,'Утренний замер не внесён','Давление до таблеток','bp');
+      /* тренировки: 1 = воскресенье … 7 = суббота */
+      var cm=EX.cardio.min[st], lm=EX.longc.min[st];
+      rep(111,2,20,0,'Тренировка A','Сначала давление','train');
+      rep(112,4,20,0,'Тренировка B','Сначала давление','train');
+      rep(113,6,20,0,'Тренировка C','Сначала давление','train');
+      rep(114,3,20,0,'Кардио · '+cm+' мин','Дорожка или велотренажёр','train');
+      rep(115,5,20,0,'Кардио · '+cm+' мин','Дорожка или велотренажёр','train');
+      rep(116,7,11,0,'Длинное кардио · '+lm+' мин','Вело, дорожка или прогулка','train');
+      /* обхваты раз в 2 недели */
+      var wa=bodySorted().filter(function(r){return r.waist}), base=wa.length?new Date(wa[wa.length-1].date+'T08:00'):new Date();
+      var mt=at(base,8,0); mt.setDate(mt.getDate()+14); if(mt<=now){mt=at(now,8,0);mt.setDate(mt.getDate()+1)}
+      one(120,mt,'Обхваты','Талия, бёдра, грудь','body');
+      /* резервная копия раз в 2 недели */
+      var lb=0; try{lb=+(localStorage.getItem('krugi.lastBackup')||0)}catch(e){}
+      var bt=at(lb?new Date(lb):now,20,30); bt.setDate(bt.getDate()+(lb?14:3)); if(bt<=now){bt=at(now,20,30);if(bt<=now)bt.setDate(bt.getDate()+1)}
+      one(121,bt,'Резервная копия','Настройки → Сохранить файл','set');
+      return LN.schedule({notifications:L});
+    });
+  }).catch(function(){});
+}
+function renderNf(){
+  if(!NATIVE)return;
+  $('#nf-row').hidden=false; var on=nfOn();
+  $('#nf').setAttribute('aria-pressed',String(on)); $('#nf').textContent=on?'Вкл':'Выкл';
+}
+if(NATIVE){
+  document.documentElement.classList.add('native');
+  $('#hard').hidden=true; $('#ver').textContent+=' · APK';
+  $('#bk-save span').textContent='Сохранить / отправить';
+  renderNf();
+  $('#nf').addEventListener('click',function(){var on=!nfOn();try{localStorage.setItem('krugi.notif',on?'1':'0')}catch(e){} renderNf(); planNotifs(); toast(on?'Напоминания включены':'Напоминания выключены',on?'check-circle':'x')});
+  try{var SB=plug('StatusBar'); if(SB){SB.setBackgroundColor({color:'#090A09'}).catch(function(){}); SB.setStyle({style:'DARK'}).catch(function(){})}}catch(e){}
+  try{var AP=plug('App'); if(AP){
+    AP.addListener('backButton',function(){ if(SHEET){closeSheet();return} if(TAB!=='train'){showTab('train');return} AP.exitApp() });
+    AP.addListener('appStateChange',function(st){ if(st&&st.isActive){renderMorning();renderPill();planNotifs()} });
+  }}catch(e){}
+  try{var LN0=plug('LocalNotifications'); if(LN0)LN0.addListener('localNotificationActionPerformed',function(a){
+    var tab=a&&a.notification&&a.notification.extra&&a.notification.extra.tab;
+    if(tab==='set'){showTab('train');openSheet('sh-set')} else if(tab==='bp'||tab==='body'||tab==='train')showTab(tab);
+  })}catch(e){}
+  planNotifs();
+}
+
 render(); renderBP(); tSet(restSec()); renderMorning(); renderMot();
 (function(){var t='train';try{t=localStorage.getItem('krugi.tab')||'train'}catch(e){} if(t==='bp'||t==='body')showTab(t)})();
 /* ---- аварийный сброс и регистрация модуля ---- */
@@ -1960,7 +2039,7 @@ $('#hard').addEventListener('click',function(){
     setTimeout(function(){location.replace(location.pathname+'?r='+Date.now())},250);
   });
 });
-if('serviceWorker' in navigator){
+if('serviceWorker' in navigator&&!NATIVE){
   window.addEventListener('load',function(){
     navigator.serviceWorker.register('sw.js').catch(function(){});
   });
