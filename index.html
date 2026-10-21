@@ -665,7 +665,7 @@ body.locked{overflow:hidden}
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
         <div class="set-sec set-row" id="nf-row" hidden><span>Напоминания</span><button class="chip" id="nf" aria-pressed="true">Вкл</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 16</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 17</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -1098,7 +1098,9 @@ $('#next').addEventListener('click',function(){
   }else{
     preset=null; tSet(restSec());
     sndDone();
-    if(cur&&W[cur].core&&!counted&&bpZone()!=='r'){counted=true;LOG[st]++;TOT++;keep();renderStage();renderMot()}
+    /* сегодняшняя тренировка засчитывается один раз, даже если пройти её заново */
+    var dup=sel===todayIdx()?!!tlToday(cur):counted;
+    if(cur&&W[cur].core&&!dup&&bpZone()!=='r'){counted=true;LOG[st]++;TOT++;keep();renderStage();renderMot()}
     if(cur&&bpZone()!=='r'&&sel===todayIdx()&&!tlToday(cur)){TLOG.push({id:uid(),date:dkey(),kind:cur,ts:Date.now(),st:st});if(TLOG.length>1500)TLOG=TLOG.slice(-1500);keepTL();render();planNotifs()}
   }
 });
@@ -1119,7 +1121,7 @@ $('#cycle').addEventListener('click',function(e){
 });
 $('#tally').addEventListener('click',function(e){
   if(!e.target.closest('#undo'))return;
-  if(LOG[st]>0){LOG[st]--;if(TOT>0)TOT--;keep();renderStage()}
+  if(LOG[st]>0){LOG[st]--;if(TOT>0)TOT--;keep();renderStage();renderMot();render()}
   counted=false;
 });
 $('#list').addEventListener('click',function(e){
