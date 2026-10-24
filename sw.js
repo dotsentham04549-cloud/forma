@@ -1,5 +1,5 @@
 /* ФОРМА — служебный модуль. Правило одно: никогда не оставлять страницу без ответа. */
-var CACHE = 'forma-20';
+var CACHE = 'forma-21';
 var CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
   './fonts/commissioner-cyrillic-400-normal.woff2',
   './fonts/commissioner-cyrillic-500-normal.woff2',
@@ -31,7 +31,7 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (ks) {
-      return Promise.all(ks.map(function (k) { return (k !== CACHE && /^(krugi|forma)-/.test(k)) ? caches.delete(k) : null; }));
+      return Promise.all(ks.map(function (k) { return (k !== CACHE && /^forma-/.test(k)) ? caches.delete(k) : null; }));
     }).then(function () { return self.clients.claim(); })
   );
 });

@@ -2198,7 +2198,7 @@ $('#hard').addEventListener('click',function(){
   }
   if(window.caches){
     jobs.push(caches.keys().then(function(ks){
-      return Promise.all(ks.filter(function(k){return /^(krugi|forma)-/.test(k)}).map(function(k){return caches.delete(k)}))}).catch(function(){}));
+      return Promise.all(ks.filter(function(k){return /^forma-/.test(k)}).map(function(k){return caches.delete(k)}))}).catch(function(){}));
   }
   Promise.all(jobs).then(function(){
     setTimeout(function(){location.replace(location.pathname+'?r='+Date.now())},250);
