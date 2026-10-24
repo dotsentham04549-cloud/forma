@@ -388,6 +388,10 @@ body.locked{overflow:hidden}
 .wk-grid .v small{font-size:11px;color:var(--ash);font-weight:500;margin-left:3px}
 .wk-grid .h{font-family:var(--mono);font-size:10.5px;color:var(--ash);margin-top:5px}
 #wk-open{width:100%;justify-content:space-between;margin-bottom:14px}
+.swap-o{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px 16px;margin-top:8px;border-radius:14px;background:#0E100E;border:1px solid var(--rule);color:var(--ivory);font:inherit;font-size:15px;text-align:left}
+.swap-o small{color:var(--ash);font-size:12.5px}
+.swap-o[aria-pressed="true"]{border-color:var(--rust);background:rgba(223,255,67,.06)}
+#swap-chip .ic{color:var(--ash)}
 </style>
 </head>
 <body>
@@ -415,6 +419,7 @@ body.locked{overflow:hidden}
         <div class="hero-chips">
           <button class="pill-btn" id="stage-chip" data-open="sh-prog"><span>Этап I</span><svg class="ic" aria-hidden="true"><use href="#i-caret-right"/></svg></button>
           <button class="bp-pill" id="bp-pill" data-open="sh-bp" hidden></button>
+          <button class="pill-btn" id="swap-chip" data-open="sh-swap" hidden><svg class="ic" aria-hidden="true"><use href="#i-arrows-clockwise"/></svg><span>Другая тренировка</span></button>
         </div>
       </div>
       <div class="hero-r">
@@ -623,6 +628,14 @@ body.locked{overflow:hidden}
       </div>
     </div>
   </div>
+  <div class="sheet" id="sh-swap" hidden role="dialog" aria-modal="true" aria-label="Тренировка сегодня">
+    <div class="sheet-bg" data-close></div>
+    <div class="sheet-panel">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head"><span>Сегодня делаю</span><button class="sheet-x" data-close aria-label="Закрыть"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+      <div class="sheet-body"><div id="swap-list"></div></div>
+    </div>
+  </div>
   <div class="sheet" id="sh-time" hidden role="dialog" aria-modal="true" aria-label="Время отдыха">
     <div class="sheet-bg" data-close></div>
     <div class="sheet-panel">
@@ -659,7 +672,7 @@ body.locked{overflow:hidden}
         <div class="set-sec set-row"><span>Звуки</span><button class="chip" id="snd" aria-pressed="true">Звук</button></div>
         <div class="set-sec set-row" id="nf-row" hidden><span>Напоминания</span><button class="chip" id="nf" aria-pressed="true">Вкл</button></div>
         <div class="set-sec">
-          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 19</span><button class="chip" id="hard">Обновить приложение</button></div>
+          <div class="set-row"><span class="caps" id="ver">ФОРМА · сборка 20</span><button class="chip" id="hard">Обновить приложение</button></div>
         </div>
       </div>
     </div>
@@ -811,7 +824,11 @@ var STAGES=[
 ];
 
 /* ================= состояние ================= */
-var st=0, sel=todayIdx(), cur=WEEK[sel].k, step=0, sndOn=true, preset=null;
+var SWAP=null; try{SWAP=JSON.parse(localStorage.getItem('krugi.swap')||'null')}catch(e){}
+function dayKind(i){ if(i===todayIdx()&&SWAP&&SWAP.date===dkeyQ())return SWAP.k; return WEEK[i].k }
+function dkeyQ(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function kindIcon(k){return k==='a'||k==='b'||k==='c'?'barbell':k==='cardio'?'person-simple-walk':k==='long'?'bicycle':'moon-stars'}
+var st=0, sel=todayIdx(), cur=dayKind(sel), step=0, sndOn=true, preset=null;
 var LOG=[0,0,0,0,0], counted=false;
 var NEED=[6,8,6,8,8];
 var CY=1, KG=16, TOT=0, LV={};   /* цикл, вес гири, всего силовых, уровни упражнений */
@@ -1025,7 +1042,11 @@ function render(){
   $$('#stages .chip').forEach(function(c){c.setAttribute('aria-pressed',String(+c.getAttribute('data-s')===st))});
   renderStage();
 
-  cur=WEEK[sel].k;
+  cur=dayKind(sel);
+  var swapped=sel===todayIdx()&&cur!==WEEK[sel].k;
+  (function(){var tb=$('#week .day[data-d="'+todayIdx()+'"] svg use'); if(tb)tb.setAttribute('href','#i-'+kindIcon(dayKind(todayIdx())))})();
+  $('#swap-chip').hidden=!(sel===todayIdx()&&step===0);
+  $('#swap-chip span').textContent=swapped?'Вместо плана: '+(cur?W[cur].name.toLowerCase():'отдых'):'Другая тренировка';
   var P=phases(), last=P.length;
   if(step>last)step=last;
   var z=bpZone();
@@ -1880,6 +1901,24 @@ function sumCard(k){
     +'<div class="sum-c">'+C.slice(0,2).join('')+'</div></div>';
 }
 
+/* ---- замена тренировки на сегодня ---- */
+function renderSwap(){
+  var plan=WEEK[todayIdx()].k, now=dayKind(todayIdx());
+  var opts=[['a','Грудь'],['b','Ноги'],['c','Спина и руки'],['cardio','Кардио'],['long','Длинное кардио']];
+  $('#swap-list').innerHTML=opts.map(function(o){
+    return '<button class="swap-o" data-swap="'+o[0]+'" aria-pressed="'+(o[0]===now)+'"><span>'+o[1]+'</span><small>'+(o[0]===plan?'по плану':(tlWeek(o[0])?'уже было на неделе':''))+'</small></button>'}).join('')
+    +(plan&&now!==plan?'':'');
+}
+function tlWeek(k){var ws=weekStart();return TLOG.some(function(x){return x.kind===k&&x.date>=ws})}
+$('#swap-list').addEventListener('click',function(e){
+  var b=e.target.closest('[data-swap]'); if(!b)return;
+  var k=b.getAttribute('data-swap');
+  SWAP=(k===WEEK[todayIdx()].k)?null:{date:dkey(),k:k};
+  try{SWAP?localStorage.setItem('krugi.swap',JSON.stringify(SWAP)):localStorage.removeItem('krugi.swap')}catch(err){}
+  sel=todayIdx(); step=0; counted=false; preset=null; render(); renderBP(); tSet(restSec()); closeSheet();
+  toast(k===WEEK[todayIdx()].k?'Сегодня — по плану':'Сегодня: '+W[k].name.toLowerCase(),'arrows-clockwise');
+});
+
 /* ---- итоги недели ---- */
 var WKOFF=0;
 function wkRange(off){var s=new Date(weekStart()+'T12:00');s.setDate(s.getDate()-7*off);var e=new Date(s);e.setDate(e.getDate()+6);return [dkey(s),dkey(e)]}
@@ -1943,6 +1982,7 @@ function openSheet(id){
   if(id==='sh-set')renderBk();
   if(id==='sh-bp'){renderBP()}
   if(id==='sh-time')renderTime();
+  if(id==='sh-swap')renderSwap();
   if(id==='sh-week'){ if(!openSheet.keepWk)WKOFF=(new Date().getDay()===1&&new Date().getHours()<14)?1:0; openSheet.keepWk=0; renderWeek() }
   requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('open')})});
 }
